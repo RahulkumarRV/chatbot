@@ -17,7 +17,9 @@ const { OpenAI } = require("openai");
 const openaiclient = new OpenAI({
     apiKey: openaikey
 });
-let messages = [];
+let messages = [
+    
+];
 
 const getReplayFromBot = async (message) => {
     const chat = model.startChat({
@@ -27,7 +29,7 @@ const getReplayFromBot = async (message) => {
     const result = await chat.sendMessage(message);
 
     // Extract response text from the model result object
-    const botReply = result.response.text;
+    const botReply = result.response.text();
 
     // Update conversation history
     messages.push(
