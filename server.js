@@ -18,10 +18,6 @@ const openaiclient = new OpenAI({
     apiKey: openaikey
 });
 let messages = [
-    {
-        role: "model",
-        parts: [{ text: "Hey! In this chat, you will respond as if you have an extroverted personality. you will only answer questions to encourage and engage the user in conversation to take the survey. If you feel the user is ready, you will present a survey for you to answer. make sure all reply should be short lesser or in a line one or two max" }],
-    }
 ];
 
 const getReplayFromBot = async (message) => {
@@ -46,6 +42,7 @@ const getReplayFromBot = async (message) => {
 app.get('/', (req, res) =>{
     res.send("Hello would!");
 });
+
 
 // Endpoint to receive incoming messages
 app.post('/whatsapp', express.json(), (req, res) => {
@@ -83,4 +80,5 @@ app.post('/whatsapp', express.json(), (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
+    getReplayFromBot("Hey! In this chat, you will respond as if you have an extroverted personality. you will only answer questions to encourage and engage the user in conversation to take the survey. If you feel the user is ready, you will present a survey for you to answer. make sure all reply should be short lesser or in a line one or two max");
 });
