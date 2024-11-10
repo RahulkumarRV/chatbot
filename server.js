@@ -30,7 +30,7 @@ app.post('/whatsapp', express.json(), (req, res) => {
         client.messages.create({
             body: messageToSend,
             from: 'whatsapp:+14155238886',
-            to: 'whatsapp:+916283690512'
+            to: 'whatsapp:+918553376407'
         })
         .then((message) =>{
             console.log(message.sid);
