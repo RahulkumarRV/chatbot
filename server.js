@@ -45,7 +45,8 @@ app.post('/whatsapp', express.json(), (req, res) => {
             client.messages.create({
               body: botMessage,
               from: 'whatsapp:+14155238886',
-              to: 'whatsapp:+916283690512'  // Assumes user number in `From` field
+              to: 'whatsapp:+916283690512',  // Assumes user number in `From` field
+              max_tokens: 100
             })
             .then((message) => {
               console.log("Message sent:", message.sid);
