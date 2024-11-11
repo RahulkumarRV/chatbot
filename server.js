@@ -77,7 +77,7 @@ const getReplayFromBot = async (userMessage, userNumber) => {
 
     const result = await chat.sendMessage(userMessage);
     const botReply = result.response.text();
-    conversation.messages.push({ role: "bot", text: botReply, timestamp: currentTimestamp });
+    conversation.messages.push({ role: "modle", text: botReply, timestamp: currentTimestamp });
 
     // Save conversation to MongoDB
     await conversation.save();
