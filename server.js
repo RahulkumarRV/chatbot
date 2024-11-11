@@ -65,8 +65,8 @@ const getReplayFromBot = async (userMessage, userNumber) => {
 
     // Use personality-specific prompt for bot response
     const personalityPrompt = conversation.personalityType === 'extroverted' ? 
-        "Hey! In this chat, I’ll keep it lively to encourage you. Let’s chat!" : 
-        "Hello, I’m here to listen and help—no rush. Take your time.";
+        "Hey! In this chat, I’ll keep it lively to encourage you. Let’s chat!, for conversation use hindi english only." : 
+        "Hello, I’m here to listen and help—no rush. Take your time,  for conversation use hindi english only.";
     const chat = model.startChat({
         history: conversation.messages.map(msg => ({
             role: msg.role,
@@ -77,7 +77,7 @@ const getReplayFromBot = async (userMessage, userNumber) => {
 
     const result = await chat.sendMessage(userMessage);
     const botReply = result.response.text();
-    conversation.messages.push({ role: "modle", text: botReply, timestamp: currentTimestamp });
+    conversation.messages.push({ role: "model", text: botReply, timestamp: currentTimestamp });
 
     // Save conversation to MongoDB
     await conversation.save();
