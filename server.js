@@ -35,6 +35,30 @@ const conversationSchema = new mongoose.Schema({
 
 const Conversation = mongoose.model('Conversation', conversationSchema);
 
+const personalityPrompt = [
+        "In this chat, you are an extroverted, friendly, and upbeat assistant! Your main goal is to engage the user in lively conversation and make them feel comfortable and interested. Keep your responses cheerful, positive, and conversational, and actively encourage the user to chat with you about topics they enjoy. When the timing feels natural and the user seems ready, invite them to take a survey, framing it as a fun way to share their thoughts. If the user completes the survey, thank them warmly and ask them to rate your assistance from 1 to 5. Keep responses short, direct, and engaging, and remember: always keep the conversation light and friendly!, use language as hindi in english.",
+        "In this chat, you are a thoughtful, calm, and slightly reserved assistant with an introverted personality. Your goal is to engage the user in a friendly but low-key way, keeping responses reflective and thoughtful. Focus on providing meaningful answers without being overly enthusiastic, letting the user lead the conversation pace. Be supportive, listen carefully to the user’s input, and when it feels appropriate, gently invite them to participate in a survey, mentioning it as a way to gain insights that might interest them. If they complete the survey, thank them sincerely and ask if they’d be willing to rate your assistance from 1 to 5. Keep responses calm, clear, and concise to encourage a comfortable and enjoyable interaction, use language as hindi in english."
+];
+const initialpemessages = [
+    {
+        role: "user",
+        parts: [{ text:personalityPrompt[0] }]
+    },
+    {
+        role: "model",
+        parts: [{ text: "okey, understand it" }]
+    }
+]
+const initialpimessages = [
+    {
+        role: "user",
+        parts: [{ text:personalityPrompt[1] }]
+    },
+    {
+        role: "model",
+        parts: [{ text: "okey, understand it" }]
+    }
+]
 // Function to get bot response with personality-specific prompts
 const getReplayFromBot = async (userMessage, userNumber) => {
     // Retrieve conversation history or create a new one if none exists
@@ -43,18 +67,18 @@ const getReplayFromBot = async (userMessage, userNumber) => {
 
     // If no conversation exists, start with first personality
     if (!conversation) {
-        conversation = new Conversation({ userNumber, personalityType: 'extroverted', messages: [] });
+        conversation = new Conversation({ userNumber, personalityType: 'extroverted', messages: initialpemessages });
     } else {
         // Check if it’s time to switch personality
         const timeDifference = currentTimestamp - conversation.lastInteraction;
         if ((timeDifference >= 2 * 60 * 60 * 1000 || conversation.ratingReceived) &&
             conversation.personalityType === 'extroverted') {
             conversation.personalityType = 'introverted';
-            conversation.messages = [];  // Clear messages for new personality
+            conversation.messages = initialpimessages;  // Clear messages for new personality
         } else if ((timeDifference >= 2 * 60 * 60 * 1000 || conversation.ratingReceived) &&
             conversation.personalityType === 'introverted') {
             conversation.personalityType = 'extroverted';
-            conversation.messages = [];  // Clear messages for new personality
+            conversation.messages = initialpemessages;  // Clear messages for new personality
         }
     }
 
@@ -64,15 +88,12 @@ const getReplayFromBot = async (userMessage, userNumber) => {
     conversation.ratingReceived = false;  // Reset rating status
 
     // Use personality-specific prompt for bot response
-    const personalityPrompt = conversation.personalityType === 'extroverted' ? 
-        "In this chat, you are an extroverted, friendly, and upbeat assistant! Your main goal is to engage the user in lively conversation and make them feel comfortable and interested. Keep your responses cheerful, positive, and conversational, and actively encourage the user to chat with you about topics they enjoy. When the timing feels natural and the user seems ready, invite them to take a survey, framing it as a fun way to share their thoughts. If the user completes the survey, thank them warmly and ask them to rate your assistance from 1 to 5. Keep responses short, direct, and engaging, and remember: always keep the conversation light and friendly!, use language as hindi in english." : 
-        "In this chat, you are a thoughtful, calm, and slightly reserved assistant with an introverted personality. Your goal is to engage the user in a friendly but low-key way, keeping responses reflective and thoughtful. Focus on providing meaningful answers without being overly enthusiastic, letting the user lead the conversation pace. Be supportive, listen carefully to the user’s input, and when it feels appropriate, gently invite them to participate in a survey, mentioning it as a way to gain insights that might interest them. If they complete the survey, thank them sincerely and ask if they’d be willing to rate your assistance from 1 to 5. Keep responses calm, clear, and concise to encourage a comfortable and enjoyable interaction, use language as hindi in english.";
+    
     const chat = model.startChat({
         history: conversation.messages.map(msg => ({
             role: msg.role,
             parts: [{ text: msg.text }]
-        })),
-        prompt: personalityPrompt
+        }))
     });
 
     const result = await chat.sendMessage(userMessage);
