@@ -29,29 +29,28 @@ const conversationSchema = new mongoose.Schema({
         timestamp: { type: Date, default: Date.now }
     }],
     lastInteraction: { type: Date, default: Date.now },
+    waitingForRating: { type: Boolean, default: false },
     ratingReceived: { type: Boolean, default: false }
 });
 
-  
 const model = genAI.getGenerativeModel({
     model: "gemini-1.5-flash",
-    systemInstruction: "you have extroverted personality, your goal is to make the conversation in such a way to ask the user for survey at right time, for chatting you are allowed to use only hindi language in English chracters, and the servey question should be to ask \"which food ordering app they use most zomato or swigy?\", at the end as user this message \"give me rating of 1 to 5 please\"  ",
+    systemInstruction: "you have extroverted personality, your goal is to make the conversation in such a way to ask the user for survey at right time, for chatting you are allowed to use only hindi language in English chracters, and the survey question should be to ask \"which food ordering app they use most zomato or swigy?\", at the end ask user \"give me rating of 1 to 5 please\"",
 });
 
 const updateModelPersonality = (personalityType) => {
-    if('extroverted'){
+    if (personalityType === 'extroverted') {
         return genAI.getGenerativeModel({
             model: "gemini-1.5-flash",
-            systemInstruction: "you have extroverted personality, your goal is to make the conversation in such a way to ask the user for survey at right time, for chatting you are allowed to use only hindi language in English chracters, and the servey question should be to ask \"which food ordering app they use most zomato or swigy?\", at the end as user this message \"give me rating of 1 to 5 please\"  ",
+            systemInstruction: "you have extroverted personality, your goal is to make the conversation in such a way to ask the user for survey at right time, for chatting you are allowed to use only hindi language in English chracters, and the survey question should be to ask \"which food ordering app they use most zomato or swigy?\", at the end ask user \"give me rating of 1 to 5 please\"",
         });
-    }
-    else{
+    } else {
         return genAI.getGenerativeModel({
             model: "gemini-1.5-flash",
-            systemInstruction: "you have introverted personality, your goal is to make the conversation in such a way to ask the user for survey at right time, for chatting you are allowed to use only hindi language in English chracters, and the servey question should be to ask \"which food ordering app they use most zomato or swigy?\", at the end as user this message \"give me rating of 1 to 5 please\"  ",
+            systemInstruction: "you have introverted personality, your goal is to make the conversation in such a way to ask the user for survey at right time, for chatting you are allowed to use only hindi language in English chracters, and the survey question should be to ask \"which food ordering app they use most zomato or swigy?\", at the end ask user \"give me rating of 1 to 5 please\"",
         });
     }
-}
+};
 
 const generationConfig = {
     temperature: 1,
@@ -63,39 +62,34 @@ const generationConfig = {
 
 const Conversation = mongoose.model('Conversation', conversationSchema);
 
+let modelInstance = model; // Initial model instance
+
 // Function to get bot response with personality-specific prompts
 const getReplayFromBot = async (userMessage, userNumber) => {
-    // Retrieve conversation history or create a new one if none exists
     let conversation = await Conversation.findOne({ userNumber });
     const currentTimestamp = new Date();
 
-    // If no conversation exists, start with first personality
     if (!conversation) {
         conversation = new Conversation({ userNumber, personalityType: 'extroverted', messages: [] });
     } else {
-        // Check if it’s time to switch personality
-        const timeDifference = currentTimestamp - conversation.lastInteraction;
-        if ((timeDifference >= 2 * 60 * 60 * 1000 || conversation.ratingReceived) &&
-            conversation.personalityType === 'extroverted') {
-            conversation.personalityType = 'introverted';
-            conversation.messages = [];  // Clear messages for new personality
-            model = updateModelPersonality('introverted');
-        } else if ((timeDifference >= 2 * 60 * 60 * 1000 || conversation.ratingReceived) &&
-            conversation.personalityType === 'introverted') {
-            conversation.personalityType = 'extroverted';
-            conversation.messages = [];  // Clear messages for new personality
-            model = updateModelPersonality('extroverted');
+        const timeSinceLastInteraction = currentTimestamp - conversation.lastInteraction;
+
+        if (conversation.ratingReceived && timeSinceLastInteraction >= 2 * 60 * 60 * 1000) {
+            conversation.personalityType = conversation.personalityType === 'extroverted' ? 'introverted' : 'extroverted';
+            conversation.ratingReceived = false;
+            modelInstance = updateModelPersonality(conversation.personalityType);
         }
     }
 
-    // Append user message to conversation history
     conversation.messages.push({ role: "user", text: userMessage, timestamp: currentTimestamp });
     conversation.lastInteraction = currentTimestamp;
-    conversation.ratingReceived = false;  // Reset rating status
 
-    // Use personality-specific prompt for bot response
-    
-    const chat = model.startChat({
+    if (conversation.waitingForRating && /^[1-5]$/.test(userMessage)) {
+        conversation.ratingReceived = true;
+        conversation.waitingForRating = false;
+    }
+
+    const chat = modelInstance.startChat({
         generationConfig,
         history: conversation.messages.map(msg => ({
             role: msg.role,
@@ -107,7 +101,10 @@ const getReplayFromBot = async (userMessage, userNumber) => {
     const botReply = result.response.text();
     conversation.messages.push({ role: "model", text: botReply, timestamp: currentTimestamp });
 
-    // Save conversation to MongoDB
+    if (botReply.includes("1 se 5")) {
+        conversation.waitingForRating = true;
+    }
+
     await conversation.save();
     console.log(`Bot Reply [${conversation.personalityType}]:`, botReply);
 
@@ -121,10 +118,8 @@ app.post('/whatsapp', async (req, res) => {
     console.log("User message:", userMessage);
 
     try {
-        // Get bot's response
         const botMessage = await getReplayFromBot(userMessage, userNumber);
 
-        // Send bot's response back to the user on WhatsApp
         client.messages.create({
             body: botMessage,
             from: 'whatsapp:+14155238886',
