@@ -85,7 +85,7 @@ const getReplayFromBot = async (userMessage, userNumber) => {
     } else {
         const timeSinceLastInteraction = currentTimestamp - conversation.lastInteraction;
 
-        if (conversation.ratingReceived && timeSinceLastInteraction >= 2 * 60 * 60 * 1000) {
+        if (conversation.ratingReceived && timeSinceLastInteraction >= 10 * 60 * 1000) {
             conversation.personalityType = conversation.personalityType === 'extroverted' ? 'introverted' : 'extroverted';
             conversation.ratingReceived = false;
             modelInstance = updateModelPersonality(conversation.personalityType);
