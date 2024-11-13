@@ -31,7 +31,17 @@ const conversationSchema = new mongoose.Schema({
     }],
     lastInteraction: { type: Date, default: Date.now },
     waitingForRating: { type: Boolean, default: false },
-    ratingReceived: { type: Boolean, default: false }
+    ratingReceived: { type: Boolean, default: false },
+    rating:{
+        extroverted:{
+            recived: { type: Boolean, default: false},
+            stars : { type: Number, default: 0 },
+        },
+        introverted:{
+            recived: { type: Boolean, default: false},
+            stars : { type: Number, default: 0 },
+        }
+    }
 });
 
 const model = genAI.getGenerativeModel({
@@ -88,6 +98,8 @@ const getReplayFromBot = async (userMessage, userNumber) => {
     if (conversation.waitingForRating && /^[1-5]$/.test(userMessage)) {
         conversation.ratingReceived = true;
         conversation.waitingForRating = false;
+        conversation.rating[conversation.personalityType].recived = true;
+        conversation.rating[conversation.personalityType].stars = parseInt(userMessage.match(/^[1-5]$/)[0], 10);
     }
 
     const chat = modelInstance.startChat({
