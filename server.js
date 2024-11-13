@@ -26,6 +26,7 @@ const conversationSchema = new mongoose.Schema({
     messages: [{
         role: String,
         text: String,
+        personality: String,
         timestamp: { type: Date, default: Date.now }
     }],
     lastInteraction: { type: Date, default: Date.now },
@@ -81,7 +82,7 @@ const getReplayFromBot = async (userMessage, userNumber) => {
         }
     }
 
-    conversation.messages.push({ role: "user", text: userMessage, timestamp: currentTimestamp });
+    conversation.messages.push({ role: "user", text: userMessage, personality: conversation.personalityType, timestamp: currentTimestamp });
     conversation.lastInteraction = currentTimestamp;
 
     if (conversation.waitingForRating && /^[1-5]$/.test(userMessage)) {
@@ -99,7 +100,7 @@ const getReplayFromBot = async (userMessage, userNumber) => {
 
     const result = await chat.sendMessage(userMessage);
     const botReply = result.response.text();
-    conversation.messages.push({ role: "model", text: botReply, timestamp: currentTimestamp });
+    conversation.messages.push({ role: "model", text: botReply, personality: conversation.personalityType, timestamp: currentTimestamp });
 
     if (botReply.includes("1 se 5")) {
         conversation.waitingForRating = true;
